@@ -1,0 +1,42 @@
+{
+  "development": {
+    "username": "",
+    "password": "",
+    "database": "",
+    "host": "",
+    "dialect": "",
+    "port": "",
+    "operatorsAliases": false
+  },
+  "test": {
+    "username": "",
+    "password": "",
+    "database": "",
+    "host": "",
+    "dialect": "",
+    "port": "",
+    "operatorsAliases": false
+  },
+  "production": {
+    "username": "",
+    "password": "",
+    "database": "",
+    "host": "",
+    "dialect": "",
+    "port": "",
+    "operatorsAliases": false
+  },
+  "uniwallet": {
+    "merchantId": "",
+    "productId": "",
+    "apiKey": ""
+  },
+  "jugnoo": {
+    "payment_callback_url": "",
+    "api_token": ""
+  },
+  "yelo": {
+    "payment_callback_url": "",
+    "api_token": ""
+  }
+}

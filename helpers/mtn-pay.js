@@ -1,0 +1,82 @@
+const moment = require("moment");
+
+const mtnPay = async (req, res) => {
+    const payment = {
+        refNo: req.body.requestid,
+        name: req.body.name,
+        msisdn: req.body.msisdn,
+        network: req.body.network,
+        amount: req.body.amount,
+        narration: req.body.narration,
+        payerid: req.body.payerid
+    }
+
+    const schema = {
+        refNo: {type: "string", optional: false},
+        name: {type: "string", optional: false, max: "100"},
+        msisdn: {type: "string", optional: false, max: "12"},
+        amount: {type: "string", optional: false},
+        narration: {type: "string", optional: false, max: "100"},
+        payerid: {type: "string", optional: false}
+    }
+
+    const v = new Validator();
+    const validationResponse = v.validate(payment, schema);
+
+    if (validationResponse !== true) {
+        return res.status(400).json({
+            message: "Validation failed",
+            errors: validationResponse
+        });
+    }
+    let created_payment = await models.Payment.create(payment);
+
+    let debit_resp = await axios.post('https://uniwallet.transflowitc.com/uniwallet/debit/customer', {
+        refNo: req.body.requestid,
+        msisdn: req.body.msisdn,
+        amount: req.body.amount,
+        narration: req.body.narration,
+        network: req.body.network,
+        merchantId: config.uniwallet.merchantId,
+        productId: config.uniwallet.productId,
+        apiKey: config.uniwallet.apiKey
+    });
+    console.log("debit_resp:", debit_resp.data);
+    let update_obj = {};
+    if ('responseCode' in debit_resp.data) {
+        update_obj['responseCode'] = debit_resp.data.responseCode;
+    }
+    if ('responseMessage' in debit_resp.data) {
+        update_obj['responseMessage'] = debit_resp.data.responseMessage;
+    }
+    if ('uniwalletTransactionId' in debit_resp.data) {
+        update_obj['uniwalletTransactionId'] = debit_resp.data.uniwalletTransactionId;
+    }
+
+    await created_payment.update(update_obj, {where: {id: created_payment.id}})
+
+    // 03	Processing payment.	Initial success response when request is made indicating that the payment is being processed.
+    if (debit_resp.data.responseCode == '03') {
+        res.status(200).json({
+            message: "Processing payment"
+        })
+    }
+        // 112	Service unavailable. Try again later	Requested service is currently unavailable
+        // 131	Request timed out	A timeout occurred when sending request to the Mobile Network Operator (MNO)
+        // 400	Invalid request	Request object is invalid.
+        // 107	Invalid Credentials	API credentials are invalid
+        // 121	Not allowed to access this service	The specified route has not been enabled for the product
+    // Duplicate Transaction	An existing refNo is being passed in the request
+    else {
+        res.status(500).json({
+            message: {
+                responseCode: debit_resp.data.responseCode,
+                responseMessage: debit_resp.data.responseMessage
+            }
+        })
+    }
+}
+
+module.exports = {
+    mtnPay: mtnPay
+}
